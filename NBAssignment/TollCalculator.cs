@@ -18,29 +18,33 @@ public class TollCalculator
 
     public int GetTollFee(Vehicle vehicle, DateTime[] dates)
     {
-		DateTime intervalStart = dates[0];
+		if (vehicle == null || dates == null)
+            return 0;
+        
+        DateTime intervalStart = dates[0];
 		int totalFee = 0;
-		int intervalFee = GetTollFee(intervalStart, vehicle);
+		int intervalFee = GetTollHourFee(intervalStart, vehicle);
 
 		foreach (DateTime vehiclePass in dates)
 		{
-			int currentFee = GetTollFee(vehiclePass, vehicle);
+			int currentFee = GetTollHourFee(vehiclePass, vehicle);
 			TimeSpan timeDiff = vehiclePass - intervalStart;
             long minutes = (long)timeDiff.TotalMinutes;
 
 			if (minutes <= TOLL_FREE_WINDOW_FOR_THE_DAY) {
-				if (totalFee > 0) 
-                    totalFee -= intervalFee;
-				if (currentFee >= intervalFee) 
-                    intervalFee = currentFee;
-				totalFee += intervalFee;
-			}
+                intervalFee = Math.Max(intervalFee, currentFee);
+            }
 			else {
-				totalFee += currentFee;
+                totalFee += intervalFee;
+                intervalStart = vehiclePass;
+                intervalFee = currentFee;
 			}
-		}
-		return Math.Min(totalFee, MAX_DAILY_FEE);
-	}
+            if (totalFee >= MAX_DAILY_FEE)
+                break;
+        }
+		totalFee += intervalFee;
+        return Math.Min(totalFee, MAX_DAILY_FEE);
+    }
 
 	private bool IsTollFreeVehicle(Vehicle vehicle)
     {
@@ -54,40 +58,40 @@ public class TollCalculator
                vehicleType.Equals(TollFreeVehicles.Military.ToString());
     }
 
-    public int GetTollFee(DateTime date, Vehicle vehicle)
+    public int GetTollHourFee(DateTime date, Vehicle vehicle)
 	{
 		if (!IsTollFreeDate(date) && !IsTollFreeVehicle(vehicle))
 		{
 			int hour = date.Hour;
 			int minute = date.Minute;
 
-			if (hour == 6 && minute >= 0 && minute <= 29) return 8;
-			else if (hour == 6 && minute >= 30 && minute <= 59) return 13;
-			else if (hour == 7 && minute >= 0 && minute <= 59) return 18;
-			else if (hour == 8 && minute >= 0 && minute <= 29) return 13;
-			else if (hour >= 8 && hour <= 14 && minute >= 30 && minute <= 59) return 8;
-			else if (hour == 15 && minute >= 0 && minute <= 29) return 13;
-			else if ((hour == 15 && minute >= 0) || (hour == 16 && minute <= 59)) return 18;
-			else if (hour == 17 && minute >= 0 && minute <= 59) return 13;
-			else if (hour == 18 && minute >= 0 && minute <= 29) return 8;
+			if (hour == 6 && minute < 30) return 8;
+			else if (hour == 6 && minute >= 30) return 13;
+			else if (hour == 7) return 18;
+			else if (hour == 8 && minute < 30) return 13;
+			else if ((hour == 8 && minute >= 30) || (hour >= 9 && hour < 15)) return 8;
+			else if (hour == 15 && minute < 30) return 13;
+			else if (hour == 15 || hour == 16) return 18;
+			else if (hour == 17) return 13;
+			else if (hour == 18 && minute < 30) return 8;
 			else return 0;
 		}
 		return 0; 
 	}
 
-	private Boolean IsTollFreeDate(DateTime date)
+    private Boolean IsTollFreeDate(DateTime date)
     {
-        if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday) 
+        if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday)
             return true;
-
-        if (date.Month == 7) //July
+        
+		if (date.Month == 7) //July
             return true;
 
         if (IsDayBeforeHoliday(date))
             return true;
-
+        
         return IsPublicHoliday(date);
-    }
+	}
 
     private Boolean IsPublicHoliday(DateTime date)
     {
