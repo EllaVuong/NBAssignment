@@ -2,21 +2,36 @@
 using System;
 using System.Globalization;
 
+/* 
+ * Syftet till ändringarna i koden är att det i slutändan ska vara lättläsligt, lätt att underhålla och återanvända och
+ * att implementera ändringar/ skalbar.
+ * 
+ * Detta är anledningen till att jag har försökt att dela upp logiken
+ * i olika metoder och försökt att få varje metod att göra en grej. Jag har försökt att undervika att använda
+ * hårdkoda värden, exempel i metoden IsTollFreeDate kollade man om året är 2013 och andra "hårdkodade datum",
+ * som röda dagar infaller. Detta fungerar tyvärr inte lika bra med röda dagar som är rörliga såsom Påsk. 
+ * 
+ * Jag har också valt att byta namn på vissa variabler, exempel date --> vehiclePass, för att göra koden mer läsbart.
+ * Gäller också namnkonvention och att jag har valt att lägga till konstanter för läsbarheten (+ lättare att ändra 
+ * de värden i framtiden ifall det skulle behövas). 
+ * 
+ * Jag har lagt till lite null-check:ar och InvalidOperationException för att programmet inte ska krascha ifall 
+ * något går snett, utan att den ska fortsätta/ visa felmeddelanden istället.
+ */
+
 public class TollCalculator
 {
+	const int MAX_DAILY_FEE = 60;
+	const int TOLL_FREE_WINDOW_FOR_THE_DAY = 60;
 
-    /**
+	/**
      * Calculate the total toll fee for one day
      *
      * @param vehicle - the vehicle
      * @param dates   - date and time of all passes on one day
      * @return - the total toll fee for that day
      */
-
-    const int MAX_DAILY_FEE = 60;
-    const int TOLL_FREE_WINDOW_FOR_THE_DAY = 60;
-
-    public int GetTollFee(Vehicle vehicle, DateTime[] dates)
+	public int GetTollFee(Vehicle vehicle, DateTime[] dates)
     {
 		if (vehicle == null || dates == null)
             return 0;
